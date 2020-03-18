@@ -3,7 +3,7 @@ module Paprotskyi04 where
 
 import Data.Char(isDigit, digitToInt)
 
--- Задача 1 -----------------------------------------
+-- Task 1 -----------------------------------------
 -- G = (VN, VT, P, S)   VN = {S, A}, VT = {a, b},
 -- P = {S -> aSbAa, S -> b, A -> baAS, A -> a}
 analyseG :: String -> Bool 
@@ -26,7 +26,7 @@ a ('b':'a':str1) = case a str1 of
     _         -> Nothing
 a ('a':str1) = Just str1
 a _          = Nothing
--- Задача 2 ----------------------------------------
+-- Task 2 ----------------------------------------
 balance :: String -> Bool
 balance str = case b str of
     Just st -> null st
@@ -45,7 +45,7 @@ b ('{':st1) = case b st1 of
     _              -> Nothing
 b st1       = Just st1
 
--- Задача 3 -----------------------------------------
+-- Task 3 -----------------------------------------
 -- G1 = ({E,F,A}, VT, P1, E)    
 -- P1  = {E -> FA, A -> +FA, A -> -FA, A -> *FA, A -> ε, 
 -- F -> (E), F -> 0,..., F -> 9 } 
@@ -73,7 +73,7 @@ aa (p:st1) | elem p "+-*" = case af st1 of
     Nothing  -> Nothing
 aa st1       = Just st1
 
--- Задача 4 -----------------------------------------
+-- Task 4 -----------------------------------------
 --	G1 = ({E,F,A}, VT, P1, E)
 --  P1  = {
 --         E -> FA, A -> +FA, A -> -FA, 
@@ -103,7 +103,7 @@ la (v1,(d:st1))| elem d "+-*" = case lf st1 of
     Nothing       -> Nothing
 la (v1,st1) = Just (v1,st1)
 
--- Задача 5 -----------------------------------------
+-- Task 5 -----------------------------------------
 --	G2 = ({E,F,A}, VT, P2, E)    
 --  P2 = {
 --        E -> FA, A -> +E, A -> -E, A -> *E, A -> ε,
@@ -132,7 +132,7 @@ ra (v1,(d:st1))| elem d "+-*" = case re st1 of
     Nothing       -> Nothing
 ra (v1,st1) = Just (v1,st1)
 
--- Задача 6 -----------------------------------------
+-- Task 6 -----------------------------------------
 -- G3 = ({E,T,A,F,B}, VT, P3, E)  
 -- P3  = { 
 --        E -> TA, A -> +TA, A -> -TA, A -> ε , T -> FB, 

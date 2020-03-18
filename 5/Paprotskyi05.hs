@@ -4,16 +4,17 @@ module Paprotskyi05 where
 import Data.Char(isUpper)
 import Data.List
 
-type Grammar    = [Production]         -- КВ-граматика
-type Production = (Char,String)        -- Правило виводу
-type Predict    = [(Char,String)]      -- Прогнозуюча таблиця
-type Control    = [((Char,Char),Int)]  -- Управляюча таблиця 
+type Grammar    = [Production]         -- Context-free grammar
+type Production = (Char,String)        -- Rule of output
+type Predict    = [(Char,String)]      -- prognosis table
+type Control    = [((Char,Char),Int)]  -- managing(control) table 
 
 -- Задача 1 ------------------------------------
---Функція addOne st c - додає до множини-рядка st символ c.
---Функція addAll st wd - додає до множини-рядка st символи з рядка wd, повертаючи  множину-рядок  (wd - не обов"язково множина-рядок).
---Функція addWithout st wd – схожа на попередню але символ '$' з рядка wd НЕ додається (ігнорується).
---Функція inter st1 st2 - реалізує перетин двох множин-рядків st1 i st2, повертаючи множину-рядок.
+--addOne st c - adds to set-string st symbol c.
+--addAll st wd - adds to set-string st symbols from string wd, returning set-string
+--  (wd - not necessarily set-string).
+--addWithout st wd – similiar to previous but '$' from string wd is being IGNORED.
+--inter st1 st2 - intersection of two set-strings st1 and st2, returning set-string.
 addOne :: String -> Char -> String  
 addOne st c | elem c st = st
             | otherwise = sort (st ++ [c])
@@ -30,12 +31,13 @@ inter [] _    = []
 inter _ []    = []
 inter st1 st2 = sort [x | x <- st1, elem x st2]
 
--- Задача 2 ------------------------------------
--- => Функція tkPredict pt n вибирає з прогнозуючої таблицi pt  множину, 
---що  зв`язана з нетерміналом n. 
---Якщо нетермінал n відсутній, то повертається "" - порожня множина.
--- => Функція upPredict pt n st змінює в таблиці pt множину,  зв`язану з нетерміналом n, на рядок-множину st. 
---Якщо нетермінал n відсутній, то в таблицю pt додається пара (n,st).
+-- Task 2 ------------------------------------
+-- => Function tkPredict pt n chooses from prognosis table pt set,
+-- which is connected with neterminal n.
+--if neterminal n is absent, "" is returned (empty set).
+-- => Function upPredict pt n st replaces in table pt set, which is connected with neterminal n,
+-- with string-set st. 
+--If neterminal n is absent, pair (n, st) is being added to the table pt.
 tkPredict :: Predict -> Char -> String
 tkPredict [] _ = "" 
 tkPredict (p:pt) n | (fst p) == n = snd p
@@ -48,12 +50,15 @@ upPredict (p:pt) n st
     | (n < fst p)  = (n, st):p:pt
     | otherwise = p:(upPredict pt n st)
 
--- Задача 3 ------------------------------------
---Функція parse gr ctl word, що моделює роботу LL(1)-аналізатора  
---для граматики gr з управляючою таблицею ctl на слові word, повертаючи Just il, де  il- список номерів продукцій, 
---що задають лівосторонній вивід слова  word, або Nothing - якщо слово word НЕ належить мові граматики  gr. 
---Можна додатково визначити функцію step gr ctl (input, staсk, result), 
---що описує один крок роботи LL(1)-аналізатора з таблицею ctl на конфігурації (input, staсk, result).
+-- Task 3 ------------------------------------
+--parse gr ctl word, modelling LL(1)-analisys  
+--for grammar gr with control table ctl on the string word, returning Just il, 
+--where  il - list of production numbers, 
+--with describe left-hand output of the string word, or Nothing - if string word DOESN'T belong to 
+--language of grammar gr. 
+--We can additionaly define the function step gr ctl (input, staсk, result), 
+--which describes one step of LL(1)-analiser work with table ctl 
+--using the configuration (input, staсk, result).
 
 -- gr0 = [('S',"aAS"),('S',"b"), ('A',"a"), ('A',"bSA")]  
 -- ctl0 = [(('A','a'),2),(('A','b'),3),(('S','a'),0),(('S','b'),1)]
@@ -65,12 +70,13 @@ parse ::  Grammar -> Control -> String -> Maybe [Int]
 parse [] _ _ = error "Empty Grammar"
 parse _ [] _ = error "Empty Control"
 parse (g:gr) ctl word =
-    let (_, _, res) = until cond stepHelper ((word++"$"), (fst g):"$", Just [])
-                          where 
-                              stepHelper :: (String, String, Maybe [Int]) -> (String, String, Maybe [Int])
-                              stepHelper (inputH,stackH,resH) = step (g:gr) ctl (inputH,stackH,resH)
-                              cond :: (String, String, Maybe [Int]) -> Bool
-                              cond (ic, sc, rc) = (((ic == "$")&&(sc == "$")) || (rc == Nothing))
+    let (_, _, res) = 
+        until cond stepHelper ((word++"$"), (fst g):"$", Just [])
+            where 
+                stepHelper :: (String, String, Maybe [Int]) -> (String, String, Maybe [Int])
+                stepHelper (inputH,stackH,resH) = step (g:gr) ctl (inputH,stackH,resH)
+                cond :: (String, String, Maybe [Int]) -> Bool
+                cond (ic, sc, rc) = (((ic == "$")&&(sc == "$")) || (rc == Nothing))
     in res
 
 step :: Grammar -> Control -> 
@@ -82,23 +88,24 @@ step _  _   (_, [], Just _) = error "Stack can't be empty"
 step gr ctl ((i:input), (s:stack), Just result)
     | (not (isUpper i))&& (not (isUpper s)) && (i == s) && (i /='$') = (input, stack, Just result)
   --  | not (isUpper s) = ((i:input), (s:stack), Nothing)--can be ERROR!!!!!!!!!!!!!!!
-    | otherwise =  --table_cross - komirka from table, ((Char,Char),Int)
+    | otherwise =  --table_cross - cell from table, ((Char,Char),Int)
         let tableCross = find (\x -> ((fst(fst x) == s) && (snd(fst x) == i))) ctl
             createStepResult :: Maybe ((Char,Char),Int) -> (String, String, Maybe [Int])
             createStepResult Nothing = ((i:input),(s:stack), Nothing)
-            createStepResult (Just ((_,_),index)) = ((i:input),(snd(gr!!index))++stack,Just(result++[index]))
+            createStepResult (Just ((_,_),index)) = 
+                ((i:input),(snd(gr!!index))++stack,Just(result++[index]))
         in  createStepResult tableCross
 
--- Задача 4 ------------------------------------
--- Функція first pFst st, котра визначає множину початкових термінальних символів,
--- котрі можна вивести з слова st (pFst - прогнозуюча таблиця початкових терміналів)
+-- Task 4 ------------------------------------
+-- Function first pFst st, which defines a set of starting(first) terminal symbols,
+-- that can be output from word st (pFst - prognosis table of starting(first) terminals)
 
--- Алгоритм обчислення функції first: базується на використанні таблиці fst.
---	Якщо α=ε,  то first(α) = {$}
---	Якщо α=aβ, a Є VT, то first(α) = {a}
---	Якщо α=A,  A Є VN, то first(α) = fst(A)
---	Якщо α=Aβ, A Є VN  i $ !Є fst(A), то first(α) = fst(A)
---	Якщо α=Aβ, A Є VN  i $ Є fst(A),  то first(α) = (fst(A) – {$}) U first(β)
+-- Algorythm of computation of function FIRST: basing on the starting table fst.
+--	If α=ε,  then first(α) = {$}
+--	If α=aβ, a Є VT, then first(α) = {a}
+--	If α=A,  A Є VN, then first(α) = fst(A)
+--	If α=Aβ, A Є VN  and $ !Є fst(A), then first(α) = fst(A)
+--	If α=Aβ, A Є VN  and $ Є fst(A),  then first(α) = (fst(A) – {$}) U first(β)
 
 first :: Predict -> String -> String
 first [] _ = error "Empty fst table"
@@ -112,20 +119,19 @@ first pFst (a:st)
                   Just x  -> snd x
                   Nothing -> error "Couldn't find N in table"
               firstNotTerminal (aa:stt) | not (elem '$' (getSecondFromMaybe(find (\x -> (fst x) == aa) pFst))) = getSecondFromMaybe(find (\x -> (fst x) == aa) pFst)
-
                                         | otherwise = addAll (addWithout "" (getSecondFromMaybe(find (\x -> (fst x) == aa) pFst))) (first pFst stt)
               getSecondFromMaybe :: Maybe (Char,String) -> String
               getSecondFromMaybe Nothing = error "Couldn't find N in table"
               getSecondFromMaybe (Just (_,s)) = s 
 
--- Задача 5 ------------------------------------
--- Функція buildingControl gr pFst pNxt, що будує управляючу таблицю 
--- для LL(1)-граматики gr  з прогнозуючими таблицями pFst  початкових і pNxt  наступних терміналів.
+-- Task 5 ------------------------------------
+-- Function buildingControl gr pFst pNxt, witch builds control table 
+-- for LL(1)-grammar gr  with prognosis table pFst of starting(first) and pNxt following terminals.
 
---	Для правила виводу A -> α з номером i
--- o	Якщо a Є VT і a Є first(α), то σ(A,a) = i,
--- o	Якщо ε Є first(α), то для довільного b Є nxt(A), [то] σ(A,b) = i.
--- •	Для всіх інших значень B Є VN , b Є VT U {$},  σ(B,b) = E. -- тобто нема
+--	For production rule A -> α with number i
+-- o	If a Є VT and a Є first(α), then σ(A,a) = i,
+-- o	If ε Є first(α), then for any b Є nxt(A), [then] σ(A,b) = i.
+-- •	For all other values B Є VN , b Є VT U {$},  σ(B,b) = E. -- that is, there is none
 
 
 buildingControl :: Grammar -> Predict -> Predict -> Control 
@@ -138,7 +144,7 @@ makeControlListFromCurrentProduction (i,(ch,alpha)) ppFst ppNxt
     | elem '$' (first ppFst alpha) = [((ch, b), i) | b <- tkPredict ppNxt ch]
     | otherwise = [((ch, a),i) | a <- (first ppFst alpha), not (isUpper a)]
 
--- Задача 6 ------------------------------------
+-- Task 6 ------------------------------------
 --  Функція testingLL1 gr pFst pNxt, що перевіряє, чи є граматика gr з  
 --  прогнозуючими таблицями pFst – початкових і pNxt наступних терміналів - LL(1)-граматикою.  
 -- Для реалізації можна додатково визначити функції: 
@@ -276,23 +282,23 @@ extandNxtOne pFst n pNxt (m:st)
     | elem '$' (first pFst st) = upPredict pNxt m (sort (addAll (tkPredict pNxt m) (addAll (addWithout (first pFst st) "") (tkPredict pNxt n))))
     | otherwise = upPredict pNxt m (sort (addWithout (tkPredict pNxt m ) (first pFst st)))
 
----------------------Тестові дані ---------------------------
+---------------------Testing values ---------------------------
  
 gr0, gr1, gr2, gr3, gr4, gr5:: Grammar
---  LL(1)-граматики
+--  LL(1)-grammars
 gr0 = [('S',"aAS"),('S',"b"), ('A',"a"), ('A',"bSA")]  
 gr1 = [('S',"TV"),('T',"d"),('T',"(S)"),('V',"+TV"),('V',"-TV"),('V',"")]  
 gr2 = [('E',"TU"),('U',""),('U',"+TU"),('U',"-TU"),
        ('T',"FV"),('V',""),('V',"*FV"),('V',"%FV"),('V',"/FV"),
        ('F',"d"),('F',"(E)")] 
--- не LL(1)-граматики
+-- not LL(1)-grammar
 gr3 = [('S',"aAS"), ('S',"a"),('A',"SbA"),('A',"ba"),('S',"")]
 gr4 = [('E',"E+T"),('E',"T"), ('T',"T*F"), ('T',"F"), ('F',"d"),('F',"(E)") ]   
 gr5 = [('E',"E+T"), ('E',"E-T"),('E',"T"), 
        ('T',"T*F"), ('T',"T%F"), ('T',"T/F"), ('T',"F"), 
        ('F',"d"),('F',"(E)") ]
 
--- прогнозуючі таблиці початкових терміналів Fst
+-- prognosis tables of starting terminals Fst
 pFst0, pFst1, pFst2, pFst3, pFst4, pFst5 :: Predict
 pFst0 = [('A',"ab"),('S',"ab")]
 pFst1 = [('S',"(d"),('T',"(d"),('V',"$+-")]
@@ -301,7 +307,7 @@ pFst3 = [('A',"ab"),('S',"$a")]
 pFst4 = [('E',"(d"),('F',"(d"),('T',"(d")]
 pFst5 = [('E',"(d"),('F',"(d"),('T',"(d")]
 
--- прогнозуючі таблиці наступних терміналів Nxt
+-- prognosis tables of following terminals Nxt
 pNxt0, pNxt1, pNxt2, pNxt3, pNxt4, pNxt5 :: Predict
 pNxt0 = [('A',"ab"),('S',"$ab")]
 pNxt1 = [('S',"$)"),('T',"$)+-"),('V',"$)")]
@@ -310,7 +316,7 @@ pNxt3 = [('A',"$ab"),('S',"$b")]
 pNxt4 = [('E',"$)+"),('F',"$)*+"),('T',"$)*+")]
 pNxt5 = [('E',"$)+-"),('F',"$%)*+-/"),('T',"$%)*+-/")]   
 
--- управляючі таблиці 
+-- control tables
 ctl0, ctl1, ctl2 :: Control 
 ctl0 = [(('A','a'),2),(('A','b'),3),(('S','a'),0),(('S','b'),1)]
 ctl1 = [(('S','('),0),(('S','d'),0),(('T','('),2),(('T','d'),1),
